@@ -9,9 +9,9 @@ func drawEyes(size: NSSize, mouseScreen: NSPoint, buttonScreenFrame: NSRect, bli
     let eyeRadius: CGFloat = size.height / 2 - 1
     let pupilRadius: CGFloat = eyeRadius * 0.38
 
-    // Augen enger zusammen: fixer Abstand statt am Rand
+    // Fixed gap between eyes instead of anchoring to the edges
     let centerY = size.height / 2
-    let spacing: CGFloat = 3   // Lücke zwischen den Augen
+    let spacing: CGFloat = 3   // gap between the two eyes
     let leftCenter  = NSPoint(x: size.width / 2 - eyeRadius - spacing / 2, y: centerY)
     let rightCenter = NSPoint(x: size.width / 2 + eyeRadius + spacing / 2, y: centerY)
 
@@ -34,8 +34,8 @@ func drawEyes(size: NSSize, mouseScreen: NSPoint, buttonScreenFrame: NSRect, bli
             offset = .zero
         }
 
-        // Blinzel-Effekt: Augenhöhe zusammendrücken
-        // blinkProgress 0 = offen, 1 = geschlossen
+        // Blink effect: squish eye height vertically
+        // blinkProgress 0 = fully open, 1 = fully closed
         let yScale = 1.0 - blinkProgress
         let visibleEyeH = max(eyeRadius * 2 * yScale, 0.5)
 
@@ -52,7 +52,7 @@ func drawEyes(size: NSSize, mouseScreen: NSPoint, buttonScreenFrame: NSRect, bli
         eyePath.lineWidth = 1
         eyePath.stroke()
 
-        // Pupil nur zeichnen wenn Auge nicht fast zu
+        // Only draw the pupil when the eye is not nearly closed
         if blinkProgress < 0.85 {
             let pupilScale = 1.0 - blinkProgress * 0.8
             let pr = pupilRadius * pupilScale
@@ -84,12 +84,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var timer: Timer?
 
     var blinkState: BlinkState = .open
-    var blinkProgress: CGFloat = 0.0   // 0 = offen, 1 = geschlossen
+    var blinkProgress: CGFloat = 0.0   // 0 = fully open, 1 = fully closed
 
-    // Blink-Animation: ~8 Frames schließen, ~8 Frames öffnen (bei 30fps ≈ 130ms je Richtung)
-    let blinkSpeed: CGFloat = 1.0 / 2.7   // ~90ms bei 30fps
+    // ~90ms per direction at 30fps
+    let blinkSpeed: CGFloat = 1.0 / 2.7
 
-    // Poisson-Prozess: durchschnittlich alle 10s blinzeln → pro Frame-Wahrscheinlichkeit
+    // Poisson process: average one blink every 10s → per-frame probability
     let blinkProbPerFrame: Double = 1.0 - exp(-1.0 / (10.0 * 30.0))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -101,18 +101,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "macEyes", action: nil, keyEquivalent: ""))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
 
         updateEyes()
 
+        // Refresh at ~30 fps
         timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
             self?.tick()
         }
     }
 
     func tick() {
-        // Blink-Zustandsmaschine
+        // Advance blink state machine
         switch blinkState {
         case .open:
             if Double.random(in: 0..<1) < blinkProbPerFrame {
@@ -143,7 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let iconSize = NSSize(width: 34, height: 16)
         let mouse = NSEvent.mouseLocation
 
-        // Das Bild wird zentriert im Button dargestellt — tatsächlichen Bildursprung berechnen
+        // The image is centered within the button — compute the actual image origin in screen coordinates
         let imageScreenFrame = NSRect(
             x: buttonScreenFrame.midX - iconSize.width / 2,
             y: buttonScreenFrame.midY - iconSize.height / 2,
@@ -164,7 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 // --- Entry point ---
 
 let app = NSApplication.shared
-app.setActivationPolicy(.accessory)
+app.setActivationPolicy(.accessory)   // no Dock icon
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
