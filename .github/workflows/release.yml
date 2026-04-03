@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release binary
+        run: swift build -c release --arch arm64 --arch x86_64
+
+      - name: Create .app bundle
+        run: |
+          APP=macEyes.app
+          mkdir -p "$APP/Contents/MacOS"
+          mkdir -p "$APP/Contents/Resources"
+
+          # Universal binary (lipo merges arm64 + x86_64)
+          lipo -create \
+            .build/arm64-apple-macosx/release/maceyes \
+            .build/x86_64-apple-macosx/release/maceyes \
+            -output "$APP/Contents/MacOS/macEyes"
+
+          cat > "$APP/Contents/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleExecutable</key>      <string>macEyes</string>
+            <key>CFBundleIdentifier</key>      <string>com.sn0371.maceyes</string>
+            <key>CFBundleName</key>            <string>macEyes</string>
+            <key>CFBundleDisplayName</key>     <string>macEyes</string>
+            <key>CFBundleVersion</key>         <string>${{ github.ref_name }}</string>
+            <key>CFBundleShortVersionString</key> <string>${{ github.ref_name }}</string>
+            <key>CFBundlePackageType</key>     <string>APPL</string>
+            <key>LSUIElement</key>             <true/>
+            <key>NSHighResolutionCapable</key> <true/>
+            <key>LSMinimumSystemVersion</key>  <string>13.0</string>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Zip .app
+        run: zip -r macEyes-${{ github.ref_name }}.zip macEyes.app
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: macEyes-${{ github.ref_name }}.zip
+          generate_release_notes: true
