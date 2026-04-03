@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build release binary
+      - name: Build universal release binary
         run: swift build -c release --arch arm64 --arch x86_64
 
       - name: Create .app bundle
@@ -21,11 +21,8 @@ jobs:
           mkdir -p "$APP/Contents/MacOS"
           mkdir -p "$APP/Contents/Resources"
 
-          # Universal binary (lipo merges arm64 + x86_64)
-          lipo -create \
-            .build/arm64-apple-macosx/release/maceyes \
-            .build/x86_64-apple-macosx/release/maceyes \
-            -output "$APP/Contents/MacOS/macEyes"
+          # SPM writes the universal binary here when both archs are specified
+          cp .build/apple/Products/Release/maceyes "$APP/Contents/MacOS/macEyes"
 
           cat > "$APP/Contents/Info.plist" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
