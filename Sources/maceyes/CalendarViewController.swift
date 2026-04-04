@@ -62,13 +62,21 @@ final class CalendarViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        buildStaticLayout()
+        snapToCurrentMonth()
+    }
 
-        // Snap to first of current month
+    override func viewWillAppear() {
+        super.viewWillAppear()
+        // Refresh every time the popover opens so the today highlight
+        // stays correct after midnight or across day boundaries.
+        snapToCurrentMonth()
+    }
+
+    private func snapToCurrentMonth() {
         var comps = cal.dateComponents([.year, .month], from: Date())
         comps.day = 1
         displayedDate = cal.date(from: comps)!
-
-        buildStaticLayout()
         rebuildGrid()
 
         view.layoutSubtreeIfNeeded()
