@@ -146,6 +146,7 @@ final class CalendarViewController: NSViewController {
     private var selectedDateKey: String? = nil
     private var dayCells: [String: DayCell] = [:]
 
+    private var outerStack: NSStackView!
     private var headerLabel: NSTextField!
     private var gridStack: NSStackView!
     private var todoSep: NSBox!
@@ -185,9 +186,7 @@ final class CalendarViewController: NSViewController {
         var comps = cal.dateComponents([.year, .month], from: Date())
         comps.day = 1
         displayedDate = cal.date(from: comps)!
-        let todayKey = dateKeyFmt.string(from: Date())
-        let hasPendingToday = TodoStore.shared.items(for: todayKey).contains(where: { !$0.isCompleted })
-        selectedDateKey = hasPendingToday ? todayKey : nil
+        selectedDateKey = dateKeyFmt.string(from: Date())
         rebuildGrid()
         updatePreferredSize()
     }
@@ -252,18 +251,21 @@ final class CalendarViewController: NSViewController {
         quitBtn.contentTintColor = .secondaryLabelColor
         quitBtn.alignment = .center
 
-        let outer = NSStackView(views: [headerRow, gridStack, todoSep, todoDateLabel, todoStack, bottomSep, quitBtn])
+        outerStack = NSStackView(views: [headerRow, gridStack, todoSep, todoDateLabel, todoStack, bottomSep, quitBtn])
+        let outer = outerStack!
         outer.orientation = .vertical
         outer.spacing = 6
         outer.edgeInsets = NSEdgeInsets(top: 10 + cellSize / 2, left: 10, bottom: 10, right: 10)
         outer.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(outer)
+        let bottomPin = outer.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        bottomPin.priority = .defaultLow
         NSLayoutConstraint.activate([
             outer.topAnchor.constraint(equalTo: view.topAnchor),
             outer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             outer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            outer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            bottomPin,
         ])
         // Force todoDateLabel and todoStack to fill outer's content width.
         // NSStackView with alignment=.leading only pins the leading edge; trailing must be manual.
@@ -511,9 +513,9 @@ final class CalendarViewController: NSViewController {
         let gridWidth = wkWidth + cellSpacing + 7 * cellSize + 6 * cellSpacing + 20
         // Set the width first so relative constraints resolve and labels can compute
         // their wrapped intrinsic height before fittingSize is queried.
-        view.frame.size.width = gridWidth
-        view.layoutSubtreeIfNeeded()
-        preferredContentSize = CGSize(width: gridWidth, height: view.fittingSize.height)
+        outerStack.frame.size.width = gridWidth
+        outerStack.layoutSubtreeIfNeeded()
+        preferredContentSize = CGSize(width: gridWidth, height: outerStack.fittingSize.height)
     }
 
     private func constrain(_ view: NSView, width: CGFloat, height: CGFloat) {
