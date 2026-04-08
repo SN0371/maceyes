@@ -328,7 +328,8 @@ final class CalendarViewController: NSViewController {
             wkLbl.font = .monospacedDigitSystemFont(ofSize: 10, weight: .regular)
             wkLbl.textColor = .tertiaryLabelColor
             wkLbl.alignment = .center
-            constrain(wkLbl, width: wkWidth, height: cellSize)
+            wkLbl.translatesAutoresizingMaskIntoConstraints = false
+            wkLbl.widthAnchor.constraint(equalToConstant: wkWidth).isActive = true
             cells.append(wkLbl)
 
             for col in 0..<7 {
